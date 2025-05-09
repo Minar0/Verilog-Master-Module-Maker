@@ -449,16 +449,41 @@ class ModuleItem(QGraphicsItem):
     
     def recalculate_dimensions(self):
         """Calculate dimensions based on current settings"""
-        # Find the longest port name (limited by max_text_length)
-        longest_input = max([len(p) for p in self.ports["inputs"]], default=0)
-        longest_output = max([len(p) for p in self.ports["outputs"]], default=0)
+        # Get font metrics to calculate text widths
+        font = QFont("Arial", 9)
+        metrics = QFontMetrics(font)
         
-        # Calculate width needed for text display
-        input_width = self.text_margin + min(longest_input, self.max_text_length) * 8
-        output_width = self.text_margin + min(longest_output, self.max_text_length) * 8
+        # Calculate the width needed for input ports (including register width)
+        input_width = 0
+        for port in self.ports["inputs"]:
+            # Calculate port name width (truncated if needed)
+            port_text = self.truncate_text(port)
+            port_width = metrics.width(port_text)
+            
+            # Add width text if available
+            width_text = f"[{self.port_widths[port]}]" if self.port_widths.get(port, "") else ""
+            if width_text:
+                port_width += metrics.width(width_text) + 5  # Add extra spacing
+            
+            input_width = max(input_width, port_width)
         
-        # Set module width based on longest port names
-        self.width = max(self.min_width, input_width + output_width + 30)
+        # Calculate the width needed for output ports (including register width)
+        output_width = 0
+        for port in self.ports["outputs"]:
+            # Calculate port name width (truncated if needed)
+            port_text = self.truncate_text(port)
+            port_width = metrics.width(port_text)
+            
+            # Add width text if available
+            width_text = f"[{self.port_widths[port]}]" if self.port_widths.get(port, "") else ""
+            if width_text:
+                port_width += metrics.width(width_text) + 5  # Add extra spacing
+            
+            output_width = max(output_width, port_width)
+        
+        # Set module width based on port names and width information
+        text_width = self.text_margin + input_width + output_width + self.text_margin + 30
+        self.width = max(self.min_width, text_width)
         
         # Calculate height based on number of ports
         port_count = max(len(self.ports["inputs"]), len(self.ports["outputs"]))
